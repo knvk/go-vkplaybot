@@ -2,6 +2,7 @@
 VK Play Live chat bot in Go.
 
 Most of the code is written just for myself and fun, and does not pretend to be "ideologically correct"
+It's not ready yet and should be considered as pre-pre-alpha.
 
 ## Install and usage:
 
