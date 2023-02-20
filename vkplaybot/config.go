@@ -69,9 +69,9 @@ func (cfg *BotConfig) activateModules() ([]Module, error) {
 			bw, _ := cfg.getBanPhrases()
 			fm := NewFilterModule(bw)
 			modules = append(modules, fm)
-		case "poll":
-			pm := NewPollModule()
-			modules = append(modules, pm)
+		//case "poll":
+		//	pm := NewPollModule()
+		//	modules = append(modules, pm)
 		default:
 			log.Printf("unknown module %s skipping ", cfg.Modules[i])
 		}
