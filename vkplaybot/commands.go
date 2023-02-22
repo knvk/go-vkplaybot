@@ -68,7 +68,7 @@ func (m *CommandsModule) Match(msg *WSMessage) (found bool, fn ModuleFunc) {
 	v, found := m.commands[cmdTxt[0]]
 
 	if found {
-		if (*v).InCooldown {
+		if v.InCooldown {
 			fmt.Println("in cooldown")
 			return false, nil
 		}
@@ -130,7 +130,7 @@ func Help(w ModuleHandler, m *WSMessage) {
 func Greet(w ModuleHandler, m *WSMessage) {
 	b := m.ParseMessage()
 	ch := w.GetChannel()
-	text := fmt.Sprintf(`привет %s, пошел в жопу`, (*b.User).Nick)
+	text := fmt.Sprintf(`привет %s, пошел в жопу`, b.User.Nick)
 	//🪓
 	w.SendChatMessage(text, ch, nil)
 }
@@ -141,9 +141,9 @@ func FollowAge(w ModuleHandler, m *WSMessage) {
 	ch := w.GetChannel()
 	if epoch > 0 {
 		t := time.Unix(epoch, 0).Format("2006 Jan 02 15:04:05")
-		w.SendChatMessage(fmt.Sprintf("%s following channel since %s", (*b.User).Nick, t), ch, nil)
+		w.SendChatMessage(fmt.Sprintf("%s following channel since %s", b.User.Nick, t), ch, nil)
 	} else {
-		w.SendChatMessage(fmt.Sprintf("%s not following this channel yet", (*b.User).Nick), ch, nil)
+		w.SendChatMessage(fmt.Sprintf("%s not following this channel yet", b.User.Nick), ch, nil)
 	}
 }
 
@@ -151,7 +151,7 @@ func Dick(w ModuleHandler, m *WSMessage) {
 	b := m.ParseMessage()
 	a := rand.Intn(11-4) + 4
 	ch := w.GetChannel()
-	w.SendChatMessage(fmt.Sprintf("пиписька %s %d см", (*b.User).Nick, a), ch, b.User)
+	w.SendChatMessage(fmt.Sprintf("пиписька %s %d см", b.User.Nick, a), ch, b.User)
 }
 
 func Joke(w ModuleHandler, m *WSMessage) {
@@ -180,7 +180,7 @@ func Viewer(w ModuleHandler, m *WSMessage) {
 	for _, v := range v.Data.Users {
 		ul = append(ul, v.Nick)
 	}
-	t := fmt.Sprintf(`Заведующий:%s Mодеры:%s Смотрящие:%s`, (*v.Data.Owner).Nick, strings.Join(ml, ","), strings.Join(ul, ","))
+	t := fmt.Sprintf(`Заведующий:%s Mодеры:%s Смотрящие:%s`, v.Data.Owner.Nick, strings.Join(ml, ","), strings.Join(ul, ","))
 	gg := Chunks(t, 200)
 	ch := w.GetChannel()
 	for _, v := range gg {

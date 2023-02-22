@@ -12,14 +12,14 @@ import (
 // returns viewers list according to "native" data scheme
 func (bot *VKPlayBot) GetViewers() (*Viewers, error) {
 	r, err := http.NewRequest("GET", fmt.Sprintf(`https://api.vkplay.live/v1/blog/%s/`+
-		`public_video_stream/chat/user/?with_bans=true`, (*bot.Channel).URL), nil)
+		`public_video_stream/chat/user/?with_bans=true`, bot.Channel.URL), nil)
 	if err != nil {
 		log.Printf("[Error] %s\n", err)
 		return nil, err
 	}
 	r.Header.Add("Origin", "https://vkplay.live")
-	r.Header.Add("Referer", fmt.Sprintf("https://vkplay.live/%s", (*bot.Channel).URL))
-	r.Header.Add("Authorization", "Bearer "+(*bot.token).AccessToken)
+	r.Header.Add("Referer", fmt.Sprintf("https://vkplay.live/%s", bot.Channel.URL))
+	r.Header.Add("Authorization", "Bearer "+bot.token.AccessToken)
 	r.Header.Add("X-From-Id", bot.ClientID)
 	resp, err := bot.DoReq(r)
 	if err != nil {
@@ -43,8 +43,8 @@ func (bot *VKPlayBot) ReadChatMessage() (m *WSMessage, err error) {
 	}
 	m = &WSMessage{}
 	json.Unmarshal(msgRaw, &m)
-	if len((*m).Result.Channel) > 0 {
-		if (*m).Result.Data.Data.Type == "message" {
+	if len(m.Result.Channel) > 0 {
+		if m.Result.Data.Data.Type == "message" {
 			return m, nil
 		}
 	}
@@ -87,7 +87,7 @@ func (bot *VKPlayBot) SendChatMessage(p string, c *Channel, mention *User) {
 	}
 	msg = append(msg, txt)
 
-	b, err := json.Marshal(msg)
+	b, _ := json.Marshal(msg)
 	body := strings.NewReader("data=" + string(b))
 	r, err := http.NewRequest("POST", fmt.Sprintf("https://api.vkplay.live/v1/blog/%s/public_video_stream/chat", c.URL), body)
 	if err != nil {
@@ -97,12 +97,16 @@ func (bot *VKPlayBot) SendChatMessage(p string, c *Channel, mention *User) {
 	r.Header.Add("Origin", "https://vkplay.live")
 	r.Header.Add("Referer", fmt.Sprintf("https://vkplay.live/%s", c.URL))
 	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	r.Header.Add("Authorization", "Bearer "+(*bot.token).AccessToken)
+	r.Header.Add("Authorization", "Bearer "+bot.token.AccessToken)
 	r.Header.Add("X-From-Id", bot.ClientID)
 
 	resp, err := bot.DoReq(r)
 	if err != nil {
 		log.Printf("[Error] %s\n", err)
+	}
+	if resp.StatusCode != 200 {
+		rd, _ := io.ReadAll(resp.Body)
+		log.Println(string(rd))
 	}
 	defer resp.Body.Close()
 }

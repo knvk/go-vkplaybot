@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gorilla/websocket"
 	"io"
 	"log"
 	"net/http"
@@ -12,6 +11,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 // Some constant URLs needed to auth bot
@@ -44,7 +45,8 @@ type AuthToken struct {
 
 // Keep-alive ticker to persist WS connection
 var (
-	ticker = time.NewTicker(60 * time.Second)
+	ticker    = time.NewTicker(60 * time.Second)
+	closeChat = make(chan bool)
 )
 
 // DoReq is a wrapper around bot's *http.Client Do method
@@ -57,18 +59,18 @@ func (bot *VKPlayBot) DoReq(r *http.Request) (*http.Response, error) {
 // so simple http post/get methods are used here
 func (bot *VKPlayBot) auth() error {
 
-	r, err := http.NewRequest("POST", SignInURL, strings.NewReader(fmt.Sprintf("login=%s&"+
+	r, _ := http.NewRequest("POST", SignInURL, strings.NewReader(fmt.Sprintf("login=%s&"+
 		"password=%s", bot.Config.User, bot.Config.Pass)))
 	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	r.Header.Add("origin", "https://account.vkplay.ru")
 	r.Header.Add("referer", "https://account.vkplay.ru/")
-	_, err = bot.DoReq(r)
+	_, err := bot.DoReq(r)
 
 	if err != nil {
 		return err
 	}
 
-	r, err = http.NewRequest("GET", GetTokenURL, nil)
+	r, _ = http.NewRequest("GET", GetTokenURL, nil)
 	r.Header.Add("origin", "https://account.vkplay.ru")
 	r.Header.Add("referer", "https://account.vkplay.ru/")
 	_, err = bot.DoReq(r)
@@ -93,7 +95,7 @@ func (bot *VKPlayBot) auth() error {
 			return nil
 		}
 	}
-	return errors.New("Can't Auth")
+	return errors.New("can't Auth")
 }
 
 // ReadWSMessage  is a wrapper that returns byte slice read from bot Web Socket Conn
@@ -151,7 +153,7 @@ func (bot *VKPlayBot) connectWS() error {
 	}
 	c, resp, err := websocket.DefaultDialer.Dial(WSURL, h)
 	if err != nil {
-		log.Printf("handshake failed with status %d", resp.StatusCode, resp.Body)
+		log.Printf("handshake failed with status %d", resp.StatusCode)
 		return err
 	}
 	bot.WSConn = c
@@ -200,7 +202,7 @@ func (bot *VKPlayBot) Start() error {
 		err := bot.auth()
 		log.Println("Auth using login/pass")
 		if err != nil {
-			log.Println("Auth error: %s\n", err)
+			log.Printf("Auth error: %s\n", err)
 			return err
 		}
 	}
@@ -208,15 +210,15 @@ func (bot *VKPlayBot) Start() error {
 	log.Println("Connecting to WS")
 	err = bot.connectWS()
 	if err != nil {
-		log.Println("WS error: %s\n", err)
+		log.Printf("WS error: %s\n", err)
 		return err
 	}
 	log.Println("Activating modules")
-	bot.Modules, err = bot.Config.activateModules()
+	bot.Modules, _ = bot.Config.activateModules()
 	// channels
 	bot.Channel, err = bot.Config.getChannelsFromConfig()
 	if err != nil {
-		log.Println("Chat channels error: %s\n", err)
+		log.Printf("Chat channels error: %s\n", err)
 		return err
 	}
 	return nil
@@ -226,7 +228,7 @@ func (bot *VKPlayBot) Start() error {
 // also we start coroutine which periodicly sends "keep alives" to persist connection
 func (bot *VKPlayBot) connectToChat(ch *Channel) error {
 
-	p := fmt.Sprintf(`{"method": 1,"params":{"channel": "public-chat:%d"},"id":%d}`, (*ch).Owner.ID, bot.WSCounter)
+	p := fmt.Sprintf(`{"method": 1,"params":{"channel": "public-chat:%d"},"id":%d}`, ch.Owner.ID, bot.WSCounter)
 	err := bot.SendWSMessage([]byte(p))
 	if err != nil {
 		return err
@@ -235,18 +237,14 @@ func (bot *VKPlayBot) connectToChat(ch *Channel) error {
 	go func() error {
 		for {
 			select {
-			// sometimes
-			//case <- bot.Cancel:
-			//		fmt.Println("stopping connect")
-			//bot.WSConn.Close()
-			//break
 			case <-ticker.C:
 				p := fmt.Sprintf(`{"method":7,"id":%d}`, bot.WSCounter)
 				err := bot.SendWSMessage([]byte(p))
 				if err != nil {
 					return err
 				}
-			default:
+			case <-closeChat:
+				return nil
 			}
 		}
 	}()
@@ -271,15 +269,16 @@ func (bot *VKPlayBot) Handle() {
 		for {
 			select {
 			case <-bot.Cancel:
-				//break
 				log.Println("Stop handling")
+				closeChat <- true
 				bot.WSConn.Close()
 				return
 			default:
 				m, err := bot.ReadChatMessage()
 
 				if err != nil {
-					panic(err)
+					log.Println(err)
+					continue
 				}
 
 				if m != nil {

@@ -1,12 +1,13 @@
 package main
 
 import (
-	"github.com/BurntSushi/toml"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"vkplaybot/vkplaybot"
+
+	"github.com/BurntSushi/toml"
 )
 
 func main() {
