@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  go-vkplaybot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: go-vkplaybot:latest
+    volumes:
+        - ./config.cfg:/config.toml
+    restart: unless-stopped
