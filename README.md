@@ -1,7 +1,7 @@
 # go-vkplaybot
 VK Play Live chat bot in Go.
 
-Most of the code is written just for myself and fun, and does not pretend to be "ideologically correct"
+Most of the code is written just for myself and fun, and does not pretend to be "ideologically correct".   
 It's not ready yet and should be considered as pre-pre-alpha.
 
 ## Install and usage:
@@ -33,11 +33,12 @@ Some several commands example:
 - Joke from anekdot.ru public api
 - Follow Age (it uses boosty one, dunno why devs did this LUL)
 - Viewers list (with mods, banned, owner)
+- VotePoll: `!poll title | option 1 | ... | option n` base 60sec cooldown
 
 ## TODO
 
 - Implement message manipulation methods
-- Vote Poll module
+- ~~Vote Poll module~~
 - Points (with sqlite backend?)
 
 Any feedback and suggestions are welcome
